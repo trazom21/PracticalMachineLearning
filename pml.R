@@ -1,33 +1,49 @@
 library(caret)
 
-#load data from disk
-train <- read.csv("E:/Git/PracticalMachineLearning/pml-training.csv", header = TRUE)
+# Load 
+training <- read.csv("E:/Git/PracticalMachineLearning/pml-training.csv", header = TRUE)
 test <- read.csv('E:/Git/PracticalMachineLearning/pml-testing.csv')
-train$classe <- as.factor(train$classe)
 
-#split the training set in 60% for training and 40% for test
-ti <- createDataPartition(y = train$classe, p=0.6, list=FALSE)
-trainPart <- train[ti, ]
-testPart <- train[-ti, ]
+training$classe <- as.factor(training$classe)
 
-#random seed
+training <- training[, -c(1:7)]
+test <- test[, -c(1:7)]
+
+naCount <- apply(training, 2, function(x) {sum(is.na(x))})
+nz <- nearZeroVar(training, saveMetrics = TRUE)
+training <- training[, which(naCount == 0 & nz$nzv == FALSE)]
+
+w = 1:dim(training)[1]
+w = sample(w, 300)
+training <- training[w, ]
+
+# Split
+ti <- createDataPartition(y = training$classe, p=0.6, list=FALSE)
+trainPartition <- training[ti, ]
+testPartition <- training[-ti, ]
+
+# Train
 set.seed(1234)
+model <- train(classe ~ ., method = "rf", data = trainPartition)
+accuracy <- predict(model , testPartition)
+print(confusionMatrix(accuracy, testPartition$classe))
 
-model <- train(classe ~ .,data=trainPart,  method="lda")
+# Cross Validation
+set.seed(1234)
+tc <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
+model_10_CV <- train(classe ~ ., method="rf",  data=trainPartition, trControl = tc)
+accuracy_10_CV <- predict(model_10_CV , testPartition)
+print(confusionMatrix(accuracy_10_CV, testPartition$classe))
 
-# testing accuracy
-accuracy <- predict(model , testPart)
-print(confusionMatrix(accuracy, testPart$classe))
-
-# 10-fold Cross Validation
-controlf <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
-model_CV <- train(classe ~ ., method="lda",  data=trainPart, trControl=controlf)
-
-# Prediction on the test set
-pred <- predict(model_CV, test)
+# Predict 
+pred <- predict(model_10_CV, test)
 print(pred)
 
-for(i in 1:length(res)) {
-  filename = paste("E:/Git/PracticalMachineLearning/res_", i, ".txt", sep="")
-  write.table(as.vector(pred[i]), file=filename, quote=FALSE, row.names=FALSE, col.names=FALSE)
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("E:/Git/PracticalMachineLearning/problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
 }
+pml_write_files(pred)

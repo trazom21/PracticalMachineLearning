@@ -1,65 +1,95 @@
-Practical Machine Learning
+Practical Machine Learning - Cyril Ferdynus
 ========================================================
 
-Load the data from the disk
+Background
 -------------------------------
 
-```{r, eval=FALSE}
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+Load data
+-------------------------------
+
+Data are read from the disk and cleaned:
+  * Remove cols that are irrelevant for the classification (the first 7 ones)
+  * Remove cols that contains only NAs or Near Zero Variance
+
+```{r, eval=TRUE}
 library(caret)
 
-train <- read.csv("E:/Git/PracticalMachineLearning/pml-training.csv", header = TRUE)
+# Load 
+training <- read.csv("E:/Git/PracticalMachineLearning/pml-training.csv", header = TRUE)
 test <- read.csv('E:/Git/PracticalMachineLearning/pml-testing.csv')
 
-train$classe <- as.factor(train$classe)
+training$classe <- as.factor(training$classe)
+
+training <- training[, -c(1:7)]
+test <- test[, -c(1:7)]
+
+naCount <- apply(training, 2, function(x) {sum(is.na(x))})
+nz <- nearZeroVar(training, saveMetrics = TRUE)
+training <- training[, which(naCount == 0 & nz$nzv == FALSE)]
 ```
+
 
 Splitting data
 -------------------------------
-Data are splitted (60% for the train set and 40% for the test set)
+Data are splitted in two partitions (60% for the train set and 40% for the test set)
 
-```{r, eval=FALSE}
-ti <- createDataPartition(y = train$classe, p=0.6, list=FALSE)
-trainPart <- train[ti,]
-testPart <- train[-ti,]
+```{r, eval=TRUE}
+ti <- createDataPartition(y = training$classe, p=0.6, list=FALSE)
+trainPartition <- training[ti, ]
+testPartition <- training[-ti, ]
+
 ```
 
-Train a machine learning model
+Train a machine learning model without Cross Validation
 -------------------------------
 
-```{r, eval=FALSE}
+We chose a random forest algorithm that perform better for this problem
+
+
+
+```{r, eval=TRUE}
 set.seed(1234)
-
-model <- train(classe ~ .,data = trainPart, method = "rf")
-
-accuracy <- predict(model , testPart)
-print(confusionMatrix(accuracy, testPart$classe))
+model <- train(classe ~ ., method = "rf", data = trainPartition)
+accuracy <- predict(model , testPartition)
+print(confusionMatrix(accuracy, testPartition$classe))
 ```
 
-10-fold Cross validation
+Train a machine learning model 10-fold Cross validation
 -------------------------------
 
-```{r, eval=FALSE}
-set.seed(4321)
-
-control <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
-model_10_CV <- train(classe ~ ., method="rf",  data=trainPart, trControl = controlf)
-
-accuracy_10_CV <- predict(model_10_CV , testPart)
-print(confusionMatrix(accuracy_10_CV, testPart$classe))
+```{r, eval=TRUE}
+set.seed(1234)
+tc <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
+model_10_CV <- train(classe ~ ., method="rf",  data=trainPartition, trControl = tc)
+accuracy_10_CV <- predict(model_10_CV , testPartition)
+print(confusionMatrix(accuracy_10_CV, testPartition$classe))
 ```
+
+Accuracy is improved when using Cross-Validation versus not using Cross Validation (XXX versus YYY)
+The model with 10-fold Cross Validation will missclassified only a few part of the sample
 
 Predicting 20 test cases
 -------------------------------
 
-```{r, eval=FALSE}
-pred <- predict(model_CV, test)
+We predict classes for the 20 test cases using the 10-fold CV algorithm
+
+```{r, eval=TRUE}
+pred <- predict(model_10_CV, test)
 print(pred)
-
-for(i in 1:length(pred)) {
-  filename = paste("E:/Git/PracticalMachineLearning/res_", i, ".txt", sep="")
-  write.table(as.vector(pred[i]), file=filename, quote=FALSE, row.names=FALSE, col.names=FALSE)
 }
+```
 
+```{r, eval=TRUE, echo=FALSE}
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("E:/Git/PracticalMachineLearning/problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(pred)
 ```
 
 
