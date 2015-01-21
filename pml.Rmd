@@ -1,0 +1,65 @@
+Practical Machine Learning
+========================================================
+
+Load the data from the disk
+-------------------------------
+
+```{r, eval=FALSE}
+library(caret)
+
+train <- read.csv("E:/Git/PracticalMachineLearning/pml-training.csv", header = TRUE)
+test <- read.csv('E:/Git/PracticalMachineLearning/pml-testing.csv')
+
+train$classe <- as.factor(train$classe)
+```
+
+Splitting data
+-------------------------------
+Data are splitted (60% for the train set and 40% for the test set)
+
+```{r, eval=FALSE}
+ti <- createDataPartition(y = train$classe, p=0.6, list=FALSE)
+trainPart <- train[ti,]
+testPart <- train[-ti,]
+```
+
+Train a machine learning model
+-------------------------------
+
+```{r, eval=FALSE}
+set.seed(1234)
+
+model <- train(classe ~ .,data = trainPart, method = "rf")
+
+accuracy <- predict(model , testPart)
+print(confusionMatrix(accuracy, testPart$classe))
+```
+
+10-fold Cross validation
+-------------------------------
+
+```{r, eval=FALSE}
+set.seed(4321)
+
+control <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
+model_10_CV <- train(classe ~ ., method="rf",  data=trainPart, trControl = controlf)
+
+accuracy_10_CV <- predict(model_10_CV , testPart)
+print(confusionMatrix(accuracy_10_CV, testPart$classe))
+```
+
+Predicting 20 test cases
+-------------------------------
+
+```{r, eval=FALSE}
+pred <- predict(model_CV, test)
+print(pred)
+
+for(i in 1:length(pred)) {
+  filename = paste("E:/Git/PracticalMachineLearning/res_", i, ".txt", sep="")
+  write.table(as.vector(pred[i]), file=filename, quote=FALSE, row.names=FALSE, col.names=FALSE)
+}
+
+```
+
+
