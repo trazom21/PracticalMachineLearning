@@ -13,10 +13,6 @@ naCount <- apply(training, 2, function(x) {sum(is.na(x))})
 nz <- nearZeroVar(training, saveMetrics = TRUE)
 training <- training[, which(naCount == 0 & nz$nzv == FALSE)]
 
-w = 1:dim(training)[1]
-w = sample(w, 300)
-training <- training[w, ]
-
 # Split
 ti <- createDataPartition(y = training$classe, p=0.6, list=FALSE)
 trainPartition <- training[ti, ]
