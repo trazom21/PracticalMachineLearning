@@ -9,9 +9,8 @@ Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible t
 Load data
 -------------------------------
 
-Data are read from the disk and cleaned:
-  * Remove cols that are irrelevant for the classification (the first 7 ones)
-  * Remove cols that contains only NAs or Near Zero Variance
+Data are read from the disk and cleaned (1) Remove cols that are irrelevant for the classification (the first 7 ones)
+  (2) Remove cols that contains only NAs or Near Zero Variance
 
 ```{r, eval=TRUE}
 library(caret)
@@ -47,14 +46,13 @@ Train a machine learning model without Cross Validation
 
 We chose a random forest algorithm that perform better for this problem
 
-
-
 ```{r, eval=TRUE}
 set.seed(1234)
 model <- train(classe ~ ., method = "rf", data = trainPartition)
 accuracy <- predict(model , testPartition)
 print(confusionMatrix(accuracy, testPartition$classe))
 ```
+
 
 Train a machine learning model 10-fold Cross validation
 -------------------------------
@@ -67,8 +65,9 @@ accuracy_10_CV <- predict(model_10_CV , testPartition)
 print(confusionMatrix(accuracy_10_CV, testPartition$classe))
 ```
 
-Accuracy is improved when using Cross-Validation versus not using Cross Validation (XXX versus YYY)
-The model with 10-fold Cross Validation will missclassified only a few part of the sample
+Accuracy is just slighlty improved when using Cross-Validation versus not using Cross Validation (99.13% without CV versus 99.15% with CV)
+This slight improvement is probably due to that the size of the train sample is very large.
+Finally, the two models should missclassify only a few part of the test sample
 
 Predicting 20 test cases
 -------------------------------
@@ -81,7 +80,10 @@ print(pred)
 }
 ```
 
-```{r, eval=TRUE, echo=FALSE}
+Writing results to file for submission
+-------------------------------
+
+```{r, eval=TRUE}
 pml_write_files = function(x){
   n = length(x)
   for(i in 1:n){
